@@ -1,4 +1,4 @@
-// Credits to https://github.com/dimitri/regresql
+// Credits to https://github.com/gchaincl/dotsql
 package queries
 
 import (

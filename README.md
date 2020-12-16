@@ -21,7 +21,7 @@ With `queries` you define your SQL code in files like `model/users.sql`
 -- name: get-user-by-id
 SELECT *
 FROM users 
-WHERE user_id = :user_id AND deleted_at = :deleted_at
+WHERE user_id = :user_id AND deleted_at is null
 
 -- name: update-user-last-login
 UPDATE users
@@ -121,18 +121,18 @@ func walkAssets(_ string, walkFn filepath.WalkFunc) error {
 
 // ...
 
-  queryStore := queries.NewQueryStore()
-  queryStore.WalkImplFunc = walkAssets
-  queryStore.OpenFunc = func(file string, load func(io.Reader) error) error {
-    asset, err := Asset(file)
-    if err != nil {
-      return err
-    }
+queryStore := queries.NewQueryStore()
+queryStore.WalkImplFunc = walkAssets
+queryStore.OpenFunc = func(file string, load func(io.Reader) error) error {
+  asset, err := Asset(file)
+  if err != nil {
+    return err
+  }
 
-    reader := bytes.NewReader(asset)
+  reader := bytes.NewReader(asset)
 
-    return load(reader)
-  } 
+  return load(reader)
+}
 ```
 
 ## Credits
