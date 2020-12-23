@@ -17,7 +17,7 @@ const (
 type (
 	QueryStore struct {
 		queries      map[string]*Query
-		OpenFunc     func(string, func(io.Reader) error) error
+		OpenFunc     func(string, func(string, io.Reader) error) error
 		WalkImplFunc func(p string, wf filepath.WalkFunc) error
 	}
 
@@ -33,7 +33,7 @@ func NewQueryStore() *QueryStore {
 	return &QueryStore{
 		queries:      make(map[string]*Query),
 		WalkImplFunc: filepath.Walk,
-		OpenFunc: func(file string, load func(io.Reader) error) error {
+		OpenFunc: func(file string, load func(string, io.Reader) error) error {
 			f, err := os.Open(file)
 			if err != nil {
 				return err
@@ -41,7 +41,7 @@ func NewQueryStore() *QueryStore {
 
 			defer f.Close()
 
-			return load(f)
+			return load(file, f)
 		},
 	}
 }
@@ -100,9 +100,9 @@ func (s *QueryStore) Query(name string) (*Query, error) {
 	return query, nil
 }
 
-func (s *QueryStore) loadQueriesFromFile(r io.Reader) error {
+func (s *QueryStore) loadQueriesFromFile(fileName string, r io.Reader) error {
 	scanner := &Scanner{}
-	newQueries := scanner.Run(bufio.NewScanner(r))
+	newQueries := scanner.Run(fileName, bufio.NewScanner(r))
 
 	for name, query := range newQueries {
 		// insert query (but check whatever it already exists)

@@ -3,6 +3,7 @@ package queries
 
 import (
 	"bufio"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -56,10 +57,12 @@ func (s *Scanner) appendQueryLine() {
 	s.queries[s.current] = current
 }
 
-func (s *Scanner) Run(io *bufio.Scanner) map[string]string {
+func (s *Scanner) Run(fileName string, io *bufio.Scanner) map[string]string {
 	s.queries = make(map[string]string)
 
-	for state := initialState; io.Scan(); {
+	s.current = filepath.Base(strings.TrimSuffix(fileName, filepath.Ext(fileName)))
+
+	for state := queryState; io.Scan(); {
 		s.line = io.Text()
 		state = state(s)
 	}
