@@ -71,8 +71,38 @@ use the `query.Raw`.
 ## Embedding SQL files in the binaries
 
 Being able to distribute only a single binary is one of the benefits of Go. The `queries` library by default uses `os` interface
-(specifically `os.Open` and `filepath.Walk) to locate the files. In order to support embedded assets within Go binaries `queries`
+(specifically `os.Open` and `filepath.Walk`) to locate the files. In order to support embedded assets within Go binaries `queries`
 provides integration with those tools via `OpenFunc` and `WalkImplFunc` of the `QueryStore`.
+
+### rice integration
+
+[rice](https://github.com/GeertJohan/go.rice) is prefered way to integrate with queries.
+
+```
+func walkTheBox(boxName string) func(string, filepath.WalkFunc) error {
+  return func(_ string, walkFn filepath.WalkFunc) error {
+    var err error
+
+    for _, file := range embedded.EmbeddedBoxes[boxName].Files {
+        walkFn(file.Filename, nil, err)
+    }
+
+    return nil
+  }
+}
+
+  queryStore = queries.NewQueryStore()
+  queryStore.WalkImplFunc = walkTheBox("models_sql")
+  queryStore.OpenFunc = func(file string, load func(io.Reader) error) error {
+    f, err := queryBox.Open(file)
+    if err != nil {
+      return err
+    }
+
+    return load(f)
+  }
+
+```
 
 ### pkger integration
 

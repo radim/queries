@@ -15,10 +15,13 @@ const (
 )
 
 type (
+	OpenImplFunc func(string, io.Reader) error
+	WalkImplFunc func(string, filepath.WalkFunc) error
+
 	QueryStore struct {
 		queries      map[string]*Query
-		OpenFunc     func(string, func(string, io.Reader) error) error
-		WalkImplFunc func(p string, wf filepath.WalkFunc) error
+		OpenFunc     func(string, OpenImplFunc) error
+		WalkImplFunc WalkImplFunc
 	}
 
 	Query struct {
@@ -33,7 +36,7 @@ func NewQueryStore() *QueryStore {
 	return &QueryStore{
 		queries:      make(map[string]*Query),
 		WalkImplFunc: filepath.Walk,
-		OpenFunc: func(file string, load func(string, io.Reader) error) error {
+		OpenFunc: func(file string, load OpenImplFunc) error {
 			f, err := os.Open(file)
 			if err != nil {
 				return err
