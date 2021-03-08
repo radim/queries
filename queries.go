@@ -14,6 +14,10 @@ const (
 	psqlVarRE = `[^:]:['"]?([A-Za-z][A-Za-z0-9_]*)['"]?`
 )
 
+var (
+	reservedNames = []string{"MI", "SS"}
+)
+
 type (
 	OpenImplFunc func(string, io.Reader) error
 	WalkImplFunc func(string, filepath.WalkFunc) error
@@ -138,6 +142,10 @@ func NewQuery(query string) *Query {
 	for _, match := range matches {
 		variable := match[1]
 
+		if isReservedName(variable) {
+			continue
+		}
+
 		if _, ok := mapping[variable]; !ok {
 			mapping[variable] = position
 			position++
@@ -187,4 +195,14 @@ func (q *Query) Prepare(args map[string]interface{}) []interface{} {
 	}
 
 	return components
+}
+
+func isReservedName(name string) bool {
+	for _, res := range reservedNames {
+		if name == res {
+			return true
+		}
+	}
+
+	return false
 }
