@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	psqlVarRE = `[^:]:['"]?([A-Za-z][A-Za-z0-9_]*)['"]?`
+	psqlVarRE = `[^:]:['"]?([A-Za-z][A-Za-z0-9_]{3,})['"]?`
 )
 
 type (
@@ -146,7 +146,7 @@ func NewQuery(query string) *Query {
 
 	// replace the variable with ordinal markers
 	for name, ord := range mapping {
-		r, _ := regexp.Compile(fmt.Sprintf(`:["']?%s["']?`, name))
+		r, _ := regexp.Compile(fmt.Sprintf(psqlVarRE, name))
 		query = r.ReplaceAllLiteralString(query, fmt.Sprintf("$%d", ord))
 	}
 
