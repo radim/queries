@@ -2,12 +2,15 @@ package queries
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 )
 
 const (
@@ -19,13 +22,8 @@ var (
 )
 
 type (
-	OpenImplFunc func(string, io.Reader) error
-	WalkImplFunc func(string, filepath.WalkFunc) error
-
 	QueryStore struct {
-		queries      map[string]*Query
-		OpenFunc     func(string, OpenImplFunc) error
-		WalkImplFunc WalkImplFunc
+		queries map[string]*Query
 	}
 
 	Query struct {
@@ -38,49 +36,64 @@ type (
 // NewQueryStore setups new query store
 func NewQueryStore() *QueryStore {
 	return &QueryStore{
-		queries:      make(map[string]*Query),
-		WalkImplFunc: filepath.Walk,
-		OpenFunc: func(file string, load OpenImplFunc) error {
-			f, err := os.Open(file)
-			if err != nil {
-				return err
-			}
-
-			defer f.Close()
-
-			return load(file, f)
-		},
+		queries: make(map[string]*Query),
 	}
 }
 
 // LoadFromFile loads query/queries from specified file
-func (s *QueryStore) LoadFromFile(file string) (err error) {
-	return s.OpenFunc(file, s.loadQueriesFromFile)
+func (s *QueryStore) LoadFromFile(fileName string) (err error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return s.loadQueriesFromFile(fileName, file)
 }
 
-// LoadFromGlob loads queries from all .sql files in root
-func (s *QueryStore) LoadFromWalk(root string) (err error) {
-	var (
-		matches []string
-	)
+func (s *QueryStore) LoadFromDir(path string) error {
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("Directory does not exist: %s", path)
+	}
 
-	matches = make([]string, 0)
+	err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
-	err = s.WalkImplFunc(root, func(path string, info os.FileInfo, err error) error {
-		if filepath.Ext(path) == ".sql" {
-			matches = append(matches, path)
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(filePath), ".sql") {
+			err = s.LoadFromFile(filePath)
+			if err != nil {
+				return fmt.Errorf("Error loading SQL file '%s': %v", filePath, err)
+			}
 		}
 
 		return nil
 	})
+
+	return err
+}
+
+func (qs *QueryStore) LoadFromEmbed(sqlFS embed.FS, path string) error {
+	dirEntries, err := fs.ReadDir(sqlFS, path)
 	if err != nil {
 		return err
 	}
 
-	for _, match := range matches {
-		loadErr := s.LoadFromFile(match)
-		if loadErr != nil {
-			return loadErr
+	for _, entry := range dirEntries {
+		filePath := entry.Name()
+
+		if !entry.IsDir() && strings.HasSuffix(strings.ToLower(filePath), ".sql") {
+			file, err := sqlFS.Open(filepath.Join(path, filePath))
+			if err != nil {
+				return fmt.Errorf("Error opening SQL file '%s': %v", filePath, err)
+			}
+			defer file.Close()
+
+			err = qs.loadQueriesFromFile(filePath, file)
+			if err != nil {
+				return fmt.Errorf("Error loading SQL file '%s': %v", filePath, err)
+			}
 		}
 	}
 
