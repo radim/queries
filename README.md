@@ -72,6 +72,10 @@ The benefit of the variable definition is better visual control. Other aspect is
 
 If you prefer the default dolar sign positional parameters, you can skip the argument preparation (`queryStore.Prepare`) and use the `query.Raw`.
 
+## Notes
+
+Version 0.3.0 and later broke the interface used by previous versions.
+
 ## Credits
 
 The `queries` library is heavily influenced (and in some cases re-uses part of the logic) by
