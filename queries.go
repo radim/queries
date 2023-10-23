@@ -27,6 +27,7 @@ type (
 	}
 
 	Query struct {
+		Name         string
 		Raw          string
 		OrdinalQuery string
 		Mapping      map[string]int
@@ -130,7 +131,7 @@ func (s *QueryStore) loadQueriesFromFile(fileName string, r io.Reader) error {
 			return fmt.Errorf("Query '%s' already exists", name)
 		}
 
-		q := NewQuery(query)
+		q := NewQuery(name, query)
 
 		s.queries[name] = q
 	}
@@ -138,13 +139,14 @@ func (s *QueryStore) loadQueriesFromFile(fileName string, r io.Reader) error {
 	return nil
 }
 
-func NewQuery(query string) *Query {
+func NewQuery(name, query string) *Query {
 	var (
 		position int = 1
 	)
 
 	q := Query{
-		Raw: query,
+		Name: name,
+		Raw:  query,
 	}
 
 	mapping := make(map[string]int)
@@ -171,7 +173,7 @@ func NewQuery(query string) *Query {
 		query = r.ReplaceAllLiteralString(query, fmt.Sprintf("$%d", ord))
 	}
 
-	q.OrdinalQuery = query
+	q.OrdinalQuery = fmt.Sprintf("-- %s\n%s", name, query)
 	q.Mapping = mapping
 
 	return &q

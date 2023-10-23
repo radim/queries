@@ -1,3 +1,3 @@
 module github.com/radim/queries
 
-go 1.15
+go 1.21
